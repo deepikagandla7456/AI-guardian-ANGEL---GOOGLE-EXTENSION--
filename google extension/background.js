@@ -4,7 +4,7 @@
 // ============================================================
 
 const VERSION = "2.0.0";
-const API_KEY = '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';
+const API_KEY = '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';
 const API_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'openai/gpt-4o-mini';
 
@@ -65,6 +65,9 @@ async function callAI(systemPrompt, userContent, maxTokens = 800) {
     const err = await res.json().catch(() => ({}));
     const errorMsg = err.error?.message || `API Error ${res.status}`;
     console.error(`[Guardian] ❌ API Error:`, errorMsg);
+    if (res.status === 401 || res.status === 403 || errorMsg.includes('User not found')) {
+      throw new Error('Invalid API key — please update your OpenRouter API key in background.js');
+    }
     throw new Error(errorMsg);
   }
 
