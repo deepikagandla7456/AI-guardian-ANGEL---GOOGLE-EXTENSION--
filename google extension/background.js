@@ -4,10 +4,15 @@
 // ============================================================
 
 const VERSION = "2.0.0";
-const API_KEY = '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';
 const API_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'openai/gpt-4o-mini';
-
+async function getApiKey() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['openrouter_api_key'], (result) => {
+      resolve(result.openrouter_api_key || null);
+    });
+  });
+}
 // ─── Stat counters (persisted in storage) ───────────────────
 async function getStats() {
   return new Promise(resolve => {
