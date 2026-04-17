@@ -4,10 +4,15 @@
 // ============================================================
 
 const VERSION = "2.0.0";
-const API_KEY = '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';
 const API_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const MODEL = 'openai/gpt-4o-mini';
-
+async function getApiKey() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['openrouter_api_key'], (result) => {
+      resolve(result.openrouter_api_key || null);
+    });
+  });
+}
 // ─── Stat counters (persisted in storage) ───────────────────
 async function getStats() {
   return new Promise(resolve => {
@@ -42,6 +47,11 @@ async function incrementStat(key, amount = 1) {
 
 // ─── AI Helper ──────────────────────────────────────────────
 async function callAI(systemPrompt, userContent, maxTokens = 800) {
+  const apiKey = await getApiKey();
+  if (!apiKey) {
+    throw new Error("No API key set. Please add your OpenRouter API key in the extension settings.");
+  }
+
   const combinedPrompt = `${systemPrompt}\n\n${userContent}`;
   console.log(`[Guardian] 🤖 Calling AI API (${maxTokens} tokens)...`);
 
@@ -49,7 +59,7 @@ async function callAI(systemPrompt, userContent, maxTokens = 800) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${API_KEY}`
+      "Authorization": `Bearer ${apiKey}`
     },
     body: JSON.stringify({
       model: MODEL,
@@ -274,11 +284,23 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return email;
 
         case "SCAN_PAGE":
-          console.log(`[Guardian] 📄 Starting page scan...`);
-          await incrementStat("pagesScanned");
-          const scan = await scanPage(msg.url, msg.text, msg.title);
-          console.log(`[Guardian] ✅ Page scan complete:`, scan);
-          return scan;
+  console.log(`[Guardian] 📄 Starting page scan...`);
+  const key = await getApiKey();
+  if (!key) {
+    return { 
+      error: "No API key found. Please set your OpenRouter API key in extension settings.",
+      safetyScore: 0,
+      category: "Unknown",
+      threats: [],
+      goodPoints: [],
+      humanSummary: "Scan could not run — API key is missing.",
+      advice: "Please add your OpenRouter API key in the extension settings."
+    };
+  }
+  await incrementStat("pagesScanned");
+  const scan = await scanPage(msg.url, msg.text, msg.title);
+  console.log(`[Guardian] ✅ Page scan complete:`, scan);
+  return scan;
 
         case "ANALYZE_PAGE":
           console.log(`[Guardian] 📋 Starting page analysis...`);
