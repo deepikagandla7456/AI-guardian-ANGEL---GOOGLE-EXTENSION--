@@ -6,7 +6,12 @@
 
 (function () {
     "use strict";
-
+    function escapeHTML(str) {
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+}
     // ─── Utility ──────────────────────────────────────────────
     function send(msg) {
         return new Promise((res, rej) => {
@@ -149,9 +154,9 @@
       <div style="background:rgba(0,0,0,0.3);border-radius:8px;padding:4px;margin-bottom:12px">
         <div style="background:${color};width:${score}%;height:8px;border-radius:6px;transition:width 1s ease"></div>
       </div>
-      <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:rgba(255,255,255,0.9)">${result.humanVerdict || result.summary || ""}</p>
-      ${result.bullets?.length ? `<ul style="margin:0 0 10px;padding-left:18px;font-size:12px;color:rgba(255,255,255,0.8);line-height:1.8">${result.bullets.map(b => `<li>${b}</li>`).join("")}</ul>` : ""}
-      ${result.risks?.length ? `<div style="background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);border-radius:8px;padding:8px 12px;margin-bottom:10px"><div style="font-size:12px;font-weight:600;color:#fca5a5;margin-bottom:4px">⚠️ Risk Clauses</div>${result.risks.map(r => `<div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px">• ${r}</div>`).join("")}</div>` : ""}
+      <p style="margin:0 0 10px;font-size:13px;line-height:1.5;color:rgba(255,255,255,0.9)">${escapeHTML(result.humanVerdict || result.summary || "")}</p>
+      ${result.bullets?.length ? `<ul style="margin:0 0 10px;padding-left:18px;font-size:12px;color:rgba(255,255,255,0.8);line-height:1.8">${result.bullets.map(b => `<li>${escapeHTML(b)}</li>`).join("")}</ul>` : ""}
+      ${result.risks?.length ? `<div style="background:rgba(239,68,68,0.2);border:1px solid rgba(239,68,68,0.4);border-radius:8px;padding:8px 12px;margin-bottom:10px"><div style="font-size:12px;font-weight:600;color:#fca5a5;margin-bottom:4px">⚠️ Risk Clauses</div>${result.risks.map(r => `<div style="font-size:11px;color:rgba(255,255,255,0.8);margin-top:3px">• ${escapeHTML(r)}</div>`).join("")}</div>` : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <span style="background:${color}22;border:1px solid ${color}55;color:${color};padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">${icon} ${rec}</span>
         ${result.autoAcceptSafe ? `<button id="guardian-auto-accept" style="background:#10b981;border:none;color:#fff;padding:4px 14px;border-radius:20px;font-size:12px;cursor:pointer">✅ Auto Accept (Safe)</button>` : ""}
@@ -203,9 +208,9 @@
           <div style="font-size:12px;color:rgba(255,255,255,0.6)">Guardian AI – ${result.verdict}</div>
         </div>
       </div>
-      <p style="margin:0 0 10px;font-size:13px;color:rgba(255,255,255,0.9);line-height:1.5">${result.humanMessage}</p>
+      <p style="margin:0 0 10px;font-size:13px;color:rgba(255,255,255,0.9);line-height:1.5">${escapeHTML(result.humanMessage)}</p>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-        ${result.flags?.map(f => `<span style="background:rgba(239,68,68,0.2);color:#fca5a5;padding:3px 10px;border-radius:20px;font-size:11px">⚡ ${f}</span>`).join("") || ""}
+        ${result.flags?.map(f => `<span style="background:rgba(239,68,68,0.2);color:#fca5a5;padding:3px 10px;border-radius:20px;font-size:11px">⚡ ${escapeHTML(f)}</span>`).join("") || ""}
       </div>
       <div style="display:flex;gap:8px">
         <div style="flex:1;background:rgba(0,0,0,0.3);border-radius:8px;padding:4px">
@@ -281,8 +286,8 @@
         <span style="margin-left:auto;background:${color}22;color:${color};padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600">${result.verdict}</span>
         <span style="color:rgba(255,255,255,0.5);font-size:12px">Trust: ${score}/100</span>
       </div>
-      <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.85);line-height:1.5">${result.humanExplanation}</p>
-      ${result.redFlags?.length ? `<div style="font-size:11px;color:#fca5a5">${result.redFlags.map(f => `⚡ ${f}`).join(" &nbsp; ")}</div>` : ""}
+      <p style="margin:0 0 8px;font-size:13px;color:rgba(255,255,255,0.85);line-height:1.5">${escapeHTML(result.humanExplanation)}</p>
+      ${result.redFlags?.length ? `<div style="font-size:11px;color:#fca5a5">${result.redFlags.map(f => `⚡ ${escapeHTML(f)}`).join(" &nbsp; ")}</div>` : ""}
     `;
         container.parentNode?.insertBefore(badge, container);
     }
