@@ -14,6 +14,41 @@ document.querySelectorAll('.tabs button').forEach(btn => {
   });
 });
 
+// ─── Restricted URL guard ─────────────────────────────────
+const RESTRICTED_PREFIXES = [
+    "chrome://",
+    "chrome-extension://",
+    "https://chrome.google.com/webstore",
+    "https://chromewebstore.google.com/",
+    "edge://",
+    "about:",
+    "devtools://",
+];
+
+const TAB_ERROR_MESSAGES = {
+    NO_ACTIVE_TAB:   "No active tab found. Please open a webpage and try again.",
+    RESTRICTED_PAGE: "Guardian AI can't run on this page — browser system pages and the Chrome Web Store are off-limits. Please navigate to a regular website.",
+};
+
+function isRestrictedUrl(url) {
+    return !url || RESTRICTED_PREFIXES.some(prefix => url.startsWith(prefix));
+}
+
+async function getActiveTab() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+        const err = new Error(TAB_ERROR_MESSAGES.NO_ACTIVE_TAB);
+        err.code = "NO_ACTIVE_TAB";
+        throw err;
+    }
+    if (isRestrictedUrl(tab.url)) {
+        const err = new Error(TAB_ERROR_MESSAGES.RESTRICTED_PAGE);
+        err.code = "RESTRICTED_PAGE";
+        throw err;
+    }
+    return tab;
+}
+
 // ─── On Load ──────────────────────────────────────────────
 window.addEventListener('load', () => {
   loadAll();
@@ -106,7 +141,7 @@ function renderSummary(scan) {
 async function scanNow() {
   $('pageSummary').innerHTML = `<div class="loading">Scanning with AI</div>`;
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await getActiveTab();
     const pageText = await getPageText(tab);
     
     log('📤 Manual scan:', tab.title, '(', pageText.length, 'chars )');
@@ -142,7 +177,7 @@ async function runPrivacy() {
   res.classList.add('show');
   
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await getActiveTab();
     const text = await getPageText(tab);
     
     chrome.runtime.sendMessage({
@@ -205,7 +240,7 @@ async function runPayment() {
   res.classList.add('show');
   
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await getActiveTab();
     const text = await getPageText(tab);
     
     chrome.runtime.sendMessage({
@@ -292,7 +327,7 @@ async function runEmail() {
 // ─── Auto Accept ──────────────────────────────────────────
 async function autoAccept() {
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await getActiveTab();
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       function: () => {
@@ -305,7 +340,13 @@ async function autoAccept() {
         }
       }
     });
-  } catch(e) { log('Auto-accept failed:', e); }
+  } catch(e) { 
+    log('Auto-accept failed:', e);
+    const res = $('privacyResults');
+    if (res) {
+      res.innerHTML = `<div style="color:#f59e0b;">⚠️ ${e.message}</div>`;
+      res.classList.add('show'); 
+  }
 }
 
 // ─── Helpers ──────────────────────────────────────────────
