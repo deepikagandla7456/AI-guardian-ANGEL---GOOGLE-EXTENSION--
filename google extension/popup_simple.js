@@ -141,7 +141,7 @@ function renderSummary(scan) {
 async function scanNow() {
   $('pageSummary').innerHTML = `<div class="loading">Scanning with AI</div>`;
   try {
-    const [tab] = await getActiveTab();
+    const tab = await getActiveTab();
     const pageText = await getPageText(tab);
     
     log('📤 Manual scan:', tab.title, '(', pageText.length, 'chars )');
@@ -177,7 +177,7 @@ async function runPrivacy() {
   res.classList.add('show');
   
   try {
-    const [tab] = await getActiveTab();
+    const tab = await getActiveTab();
     const text = await getPageText(tab);
     
     chrome.runtime.sendMessage({
@@ -240,7 +240,7 @@ async function runPayment() {
   res.classList.add('show');
   
   try {
-    const [tab] = await getActiveTab();
+    const tab = await getActiveTab();
     const text = await getPageText(tab);
     
     chrome.runtime.sendMessage({
@@ -374,3 +374,8 @@ function escHtml(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("scanBtn")?.addEventListener("click", scanNow);
+  document.getElementById("refreshBtn")?.addEventListener("click", loadAll);
+});
