@@ -348,6 +348,7 @@ async function autoAccept() {
       res.classList.add('show'); 
   }
 }
+}
 
 // ─── Helpers ──────────────────────────────────────────────
 async function getPageText(tab) {
