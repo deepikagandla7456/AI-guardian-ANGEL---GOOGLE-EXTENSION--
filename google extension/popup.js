@@ -130,6 +130,7 @@ async function showMainApp() {
     $("main-app").classList.remove("hidden");
     await loadStats();
     await loadPageInfo();
+    await refreshApiKeyState();
 }
 
 $("setup-save")?.addEventListener("click", async () => {
@@ -451,7 +452,7 @@ $("analyze-email-btn")?.addEventListener("click", async () => {
 // ─── Settings Logic ───────────────────────────────────────────
 async function loadSettings() {
     return new Promise(resolve => {
-        chrome.storage.sync.get(["gemini_key", "privacyLevel", "adsEnabled", "trackersEnabled", "autoConsent", "paymentVerify", "autoPrivacy", "linkHighlight"], prefs => {
+        chrome.storage.sync.get(["privacyLevel", "adsEnabled", "trackersEnabled", "autoConsent", "paymentVerify", "autoPrivacy", "linkHighlight"], prefs => {
             // Privacy level
             if ($("privacy-level")) $("privacy-level").value = prefs.privacyLevel || "strict";
             // Toggles
@@ -461,13 +462,20 @@ async function loadSettings() {
                 const el = document.querySelector(`[data-key="${key}"]`);
                 if (el) el.classList.toggle("on", val);
             });
-            // Mask key in settings
-            if ($("settings-key") && prefs.gemini_key) {
-                $("settings-key").placeholder = "AIza…" + prefs.gemini_key.slice(-4) + " (saved)";
-            }
             resolve(prefs);
         });
     });
+}
+
+async function refreshApiKeyState() {
+    const keyState = await sendBg({ type: "CHECK_API_KEY" });
+    if ($("settings-key")) {
+        $("settings-key").placeholder = keyState.hasKey
+            ? `AIza…${keyState.keySuffix} (saved)`
+            : "AIza…";
+    }
+    if ($("ai-coverage")) $("ai-coverage").textContent = keyState.hasKey ? "Active (Gemini)" : "No Key";
+    if ($("ai-bar")) $("ai-bar").style.width = keyState.hasKey ? "100%" : "0%";
 }
 
 async function saveSettings() {
@@ -511,6 +519,7 @@ $("save-key-btn")?.addEventListener("click", async () => {
 // Clear key
 $("clear-key-btn")?.addEventListener("click", async () => {
     if (!confirm("Are you sure you want to clear your API key and reset all settings?")) return;
+    await sendBg({ type: "CLEAR_API_KEY" });
     await new Promise(r => chrome.storage.sync.clear(r));
     location.reload();
 });
@@ -519,4 +528,5 @@ $("clear-key-btn")?.addEventListener("click", async () => {
 (async () => {
     await checkSetup();
     await loadSettings();
+    await refreshApiKeyState();
 })();

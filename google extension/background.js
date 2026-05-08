@@ -6,8 +6,14 @@
 const VERSION = "2.0.0";
 const API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
 const MODEL = 'gemini-2.0-flash';
+const API_KEY_STORAGE_KEY = "guardian_gemini_api_key";
+
 async function getApiKey() {
-  return "AIzaSyD-Id2Kz8PBUu6BT5RLEgYXKB6_ePdPQJw";
+  return new Promise(resolve => {
+    chrome.storage.local.get([API_KEY_STORAGE_KEY], r => {
+      resolve(r[API_KEY_STORAGE_KEY] || "");
+    });
+  });
 }
 // ─── Stat counters (persisted in storage) ───────────────────
 async function getStats() {
@@ -45,7 +51,7 @@ async function incrementStat(key, amount = 1) {
 async function callAI(systemPrompt, userContent, maxTokens = 800) {
   const apiKey = await getApiKey();
   if (!apiKey) {
-    throw new Error("No API key set. Please add your OpenRouter API key in the extension settings.");
+    throw new Error("No API key set. Please add your Gemini API key in the extension settings.");
   }
 
   const combinedPrompt = `${systemPrompt}\n\n${userContent}`;
@@ -72,7 +78,7 @@ async function callAI(systemPrompt, userContent, maxTokens = 800) {
     const errorMsg = err.error?.message || `API Error ${res.status}`;
     console.error(`[Guardian] ❌ API Error:`, errorMsg);
     if (res.status === 401 || res.status === 403 || errorMsg.includes('User not found')) {
-      throw new Error('Invalid API key — please update your OpenRouter API key in background.js');
+      throw new Error('Invalid API key — please update your Gemini API key in the extension settings.');
     }
     throw new Error(errorMsg);
   }
@@ -284,13 +290,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   const key = await getApiKey();
   if (!key) {
     return { 
-      error: "No API key found. Please set your OpenRouter API key in extension settings.",
+      error: "No API key found. Please set your Gemini API key in extension settings.",
       safetyScore: 0,
       category: "Unknown",
       threats: [],
       goodPoints: [],
       humanSummary: "Scan could not run — API key is missing.",
-      advice: "Please add your OpenRouter API key in the extension settings."
+      advice: "Please add your Gemini API key in the extension settings."
     };
   }
   await incrementStat("pagesScanned");
@@ -390,11 +396,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           return { ok: true };
 
         case "SAVE_API_KEY":
-          await new Promise(r => chrome.storage.local.set({ openrouter_api_key: msg.key }, r));
+          await new Promise(r => chrome.storage.local.set({ [API_KEY_STORAGE_KEY]: msg.key }, r));
+          return { ok: true };
+
+        case "CLEAR_API_KEY":
+          await new Promise(r => chrome.storage.local.remove(API_KEY_STORAGE_KEY, r));
           return { ok: true };
 
         case "CHECK_API_KEY":
-          return { hasKey: true, provider: "openrouter" };
+          const storedKey = await getApiKey();
+          return {
+            hasKey: !!storedKey,
+            provider: "gemini",
+            keySuffix: storedKey ? storedKey.slice(-4) : ""
+          };
 
         default:
           console.log(`[Guardian] ⚠️ Unknown message type:`, msg.type);
