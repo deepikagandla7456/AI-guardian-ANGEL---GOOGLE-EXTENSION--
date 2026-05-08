@@ -529,5 +529,4 @@ $("clear-key-btn")?.addEventListener("click", async () => {
 (async () => {
     await checkSetup();
     await loadSettings();
-    await refreshApiKeyState();
 })();
