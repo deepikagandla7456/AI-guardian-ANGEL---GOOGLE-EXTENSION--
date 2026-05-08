@@ -450,15 +450,17 @@ $("analyze-email-btn")?.addEventListener("click", async () => {
 });
 
 // ─── Settings Logic ───────────────────────────────────────────
+const SETTINGS_TOGGLES = ["adsEnabled", "trackersEnabled", "autoConsent", "paymentVerify", "autoPrivacy", "emailScan", "linkHighlight"];
+const AI_AUTOMATION_TOGGLES = new Set(["paymentVerify", "autoPrivacy", "emailScan"]);
+
 async function loadSettings() {
     return new Promise(resolve => {
-        chrome.storage.sync.get(["privacyLevel", "adsEnabled", "trackersEnabled", "autoConsent", "paymentVerify", "autoPrivacy", "linkHighlight"], prefs => {
+        chrome.storage.sync.get(["privacyLevel", ...SETTINGS_TOGGLES], prefs => {
             // Privacy level
             if ($("privacy-level")) $("privacy-level").value = prefs.privacyLevel || "strict";
             // Toggles
-            const toggles = ["adsEnabled", "trackersEnabled", "autoConsent", "paymentVerify", "autoPrivacy", "linkHighlight"];
-            toggles.forEach(key => {
-                const val = prefs[key] !== false; // default ON
+            SETTINGS_TOGGLES.forEach(key => {
+                const val = AI_AUTOMATION_TOGGLES.has(key) ? prefs[key] === true : prefs[key] !== false;
                 const el = document.querySelector(`[data-key="${key}"]`);
                 if (el) el.classList.toggle("on", val);
             });
@@ -481,10 +483,9 @@ async function refreshApiKeyState() {
 async function saveSettings() {
     const prefs = {};
     prefs.privacyLevel = $("privacy-level")?.value || "strict";
-    const toggles = ["adsEnabled", "trackersEnabled", "autoConsent", "paymentVerify", "autoPrivacy", "linkHighlight"];
-    toggles.forEach(key => {
+    SETTINGS_TOGGLES.forEach(key => {
         const el = document.querySelector(`[data-key="${key}"]`);
-        prefs[key] = el ? el.classList.contains("on") : true;
+        prefs[key] = el ? el.classList.contains("on") : !AI_AUTOMATION_TOGGLES.has(key);
     });
     await new Promise(r => chrome.storage.sync.set(prefs, r));
 }
